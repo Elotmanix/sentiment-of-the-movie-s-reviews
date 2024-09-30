@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineScope: Movie Review Sentiment Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-image: url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4">
+    <div class="glass-effect p-8 rounded-xl shadow-2xl w-full max-w-md fade-in">
+        <h1 class="text-3xl font-bold mb-6 text-center text-white text-shadow">CineScope</h1>
+        <h2 class="text-xl font-semibold mb-4 text-center text-yellow-300 text-shadow">Movie Review Sentiment Analyzer</h2>
+        <form id="reviewForm" class="space-y-4">
+            <div>
+                <label for="review" class="block text-sm font-medium text-white mb-2">Enter your movie review:</label>
+                <textarea id="review" name="review" rows="4" class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-yellow-500 transition duration-300" required></textarea>
+            </div>
+            <button type="submit" class="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
+                Analyze Sentiment
+            </button>
+        </form>
+        <div id="result" class="mt-6 p-4 rounded-lg hidden transition-all duration-300 ease-in-out">
+            <p id="prediction" class="text-lg font-semibold mb-2"></p>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-2">
+                <div id="probability-bar" class="h-2.5 rounded-full"></div>
+            </div>
+            <p id="probability" class="text-sm text-right"></p>
+        </div>
+        <div id="error" class="mt-6 p-4 rounded-lg hidden bg-red-100 text-red-800"></div>
+    </div>
+
+    <script>
+        document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const review = document.getElementById('review').value;
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            const predictionP = document.getElementById('prediction');
+            const probabilityP = document.getElementById('probability');
+            const probabilityBar = document.getElementById('probability-bar');
+
+            resultDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+
+            try {
+                const response = await fetch('/predict-review', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `review=${encodeURIComponent(review)}`
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                predictionP.textContent = `Sentiment: ${data.prediction}`;
+                probabilityP.textContent = `Probability: ${data.Probability}`;
+                
+                const probabilityValue = parseFloat(data.Probability);
+                probabilityBar.style.width = `${probabilityValue * 100}%`;
+                
+                resultDiv.classList.remove('bg-green-100', 'bg-red-100');
+                probabilityBar.classList.remove('bg-green-500', 'bg-red-500');
+                predictionP.classList.remove('text-green-800', 'text-red-800');
+
+                if (data.prediction === 'Positive') {
+                    resultDiv.classList.add('bg-green-100');
+                    probabilityBar.classList.add('bg-green-500');
+                    predictionP.classList.add('text-green-800');
+                } else {
+                    resultDiv.classList.add('bg-red-100');
+                    probabilityBar.classList.add('bg-red-500');
+                    predictionP.classList.add('text-red-800');
+                }
+                
+                resultDiv.classList.remove('hidden');
+                resultDiv.classList.add('fade-in');
+            } catch (error) {
+                console.error('Error:', error);
+                errorDiv.textContent = `An error occurred: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+                errorDiv.classList.add('fade-in');
+            }
+        });
+    </script>
+</body>
+</html>
